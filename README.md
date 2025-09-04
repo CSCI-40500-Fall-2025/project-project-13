@@ -1,4 +1,4 @@
-# Project 13: ClubHub
+# Project 13: Hunter ClubHub
 
 ## Product Vision
 
