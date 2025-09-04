@@ -1,2 +1,15 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/_KG6YNPd)
-[![Open in Codespaces](https://classroom.github.com/assets/launch-codespace-2972f46106e565e64193e422d61a12cf1da4916b45550586e14ef0a7c637dd04.svg)](https://classroom.github.com/open-in-codespaces?assignment_repo_id=20230142)
+# Project 13: ClubHub
+
+## Product Vision
+
+FOR Hunter College students, especially freshmen and new students,
+
+WHO struggle to discover and keep track of campus clubs and events, 
+
+The Hunter ClubHub is a centralized club and event listing website
+
+THAT makes it easy to find, follow, and participate in all club events and campus activities in one place, boosting engagement and awareness.
+
+UNLIKE scattered social media pages, physical posters, or unread emails,
+
+OUR PRODUCT provides a single, up-to-date platform where clubs and students can easily post, find, and manage events, including features for manual posting and automated aggregation from social media.
