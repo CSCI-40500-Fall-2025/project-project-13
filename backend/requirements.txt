@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlalchemy[asyncio]
+psycopg[binary]
+python-dotenv
+pgvector
+pydantic
+googlemaps
+requests
+aiohttp
+boto3
+chonkie
