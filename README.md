@@ -1,18 +1,25 @@
-# Project 13: Hunter ClubHub
+# NYC Discovery App
 
 ## Product Vision
 
-FOR Hunter College students, especially freshmen and new students,
+FOR NYC residents and visitors,
 
-WHO struggle to discover and keep track of campus clubs and events, 
+WHO want to discover trending, seasonal, and highly-rated things to do in the city,
 
-The Hunter ClubHub is a centralized club and event listing website
+The NYC Discovery App is a personalized recommendation platform
 
-THAT makes it easy to find, follow, and participate in all club events and campus activities in one place, boosting engagement and awareness.
+THAT provides a "For You Page" (FYP) based on user interests, ratings, and past visits, suggesting activities like Bryant Park Winter Village during winter.
 
-UNLIKE scattered social media pages, physical posters, or unread emails,
+UNLIKE generic city guides or scattered social media posts,
 
-OUR PRODUCT provides a single, up-to-date platform where clubs and students can easily post, find, and manage events, including features for manual posting and automated aggregation from social media.
+OUR PRODUCT uses RAG (Retrieval-Augmented Generation) recommendations, location verification, and daily trending content scraping to provide personalized, up-to-date suggestions that adapt to user preferences and seasonal trends.
+
+## Key Features (MVP)
+- **Personalized Feed** - FYP with trending and recommended places
+- **Search & Discovery** - Find places by category and location
+- **Location Verification** - Check-in system to verify visits
+- **Rating System** - Rate and review places you've visited
+- **Hunter College Section** - School-specific events and places
 
 How to run:
 
