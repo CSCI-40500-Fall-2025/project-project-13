@@ -22,8 +22,9 @@ backend -> cd into backend folder;
 If first time, run python3 -m venv venv
 
 All the time:
-source venv/bin/activate
+- for mac: source venv/bin/activate
+- for windows: venv/scripts/activate
 
-first time: pip install -r requirements
+first time: pip install -r requirements.txt
 
 then you can python3 run.py
