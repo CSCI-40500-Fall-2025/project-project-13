@@ -21,17 +21,19 @@ OUR PRODUCT uses RAG (Retrieval-Augmented Generation) recommendations, location 
 - **Rating System** - Rate and review places you've visited
 - **Hunter College Section** - School-specific events and places
 
-How to run:
+## How to run:
+Frontend:
+- cd into frontend folder;
+- run following commands:
+  - npm install;
+  - npm start;
 
-frontend -> cd into frontend folder; npm install; npm start; 
-backend -> cd into backend folder;
-
-If first time, run python3 -m venv venv
-
-All the time:
-- for mac: source venv/bin/activate
-- for windows: venv/scripts/activate
-
-first time: pip install -r requirements.txt
-
-then you can python3 run.py
+Backend:
+- cd into backend folder;
+- If first time,
+  - run: python3 -m venv venv
+- All the time:
+  - for mac: source venv/bin/activate
+  - for windows: venv/scripts/activate
+- If first time, run: pip install -r requirements.txt
+- Then run: python3 run.py
