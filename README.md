@@ -21,7 +21,7 @@ OUR PRODUCT uses RAG (Retrieval-Augmented Generation) recommendations, location 
 - **Rating System** - Rate and review places you've visited
 - **Hunter College Section** - School-specific events and places
 
-## How to run:
+## How to run locally:
 Frontend:
 - cd into frontend folder;
 - run following commands:
@@ -37,3 +37,6 @@ Backend:
   - for windows: venv/scripts/activate
 - If first time, run: pip install -r requirements.txt
 - Then run: python3 run.py
+
+
+You can also download an APK containing our frontend: https://expo.dev/accounts/ataurm/projects/frontend/builds/3b81805f-7d2b-4987-a9cf-44323e088f36
