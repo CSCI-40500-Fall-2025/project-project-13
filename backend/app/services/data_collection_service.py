@@ -6,7 +6,7 @@ from .google_maps_service import GoogleMapsService
 from .embedding_service import EmbeddingService
 import asyncio
 from datetime import datetime
-
+from .embedding import get_similar
 class DataCollectionService:
     def __init__(self):
         self.google_maps_service = GoogleMapsService()
@@ -355,16 +355,22 @@ class DataCollectionService:
         return deleted
     
     async def get_all_attractions(self, db: AsyncSession) -> List[Attraction]:
-        """Get all attractions from the database"""
-        result = await db.execute(select(Attraction))
+        """Get up to 50 attractions from the database"""
+        result = await db.execute(
+            select(Attraction).limit(50)
+        )
         return result.scalars().all()
     
     async def search_attractions(self, db: AsyncSession, query: str) -> List[Attraction]:
         """Search attractions in the database by location or description"""
-        result = await db.execute(
-            select(Attraction).where(
-                Attraction.location.ilike(f"%{query}%") |
-                Attraction.description.ilike(f"%{query}%")
-            )
-        )
-        return result.scalars().all()
+
+        embs = await get_similar(query, db, max_results = 30, threshold = .6)
+        attractions = {}
+        for emb in embs:
+            if emb.attraction_id not in attractions:
+                attractions[emb.attraction_id] = emb.attraction
+        
+        return [attractions[id].__json__() for id in attractions]
+    
+
+    

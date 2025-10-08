@@ -1,43 +1,72 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
-
-import { HapticTab } from '@/components/HapticTab';
+import { TouchableOpacity, Text, View } from 'react-native';
+// import * as SecureStore from 'expo-secure-store';
+import { deleteItem } from "../utils/secureStore";
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const darkGreen = '#1a2a1a';
+  const accent = '#3a7d3a';
+  const textColor = '#c4f0c4';
+
+  const handleLogout = async () => {
+    await deleteItem("access_token");
+    await deleteItem("refresh_token");
+    await deleteItem("user_id");
+    if (typeof localStorage !== 'undefined') localStorage.clear();
+    globalThis.location.href = "/(auth)/login";
+  };
+
+  // Custom header component
+  const CustomHeader = () => (
+    <View
+      style={{
+        height: 60,
+        backgroundColor: darkGreen,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+      }}
+    >
+      <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>NYC Discovery</Text>
+      <TouchableOpacity onPress={handleLogout} style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <IconSymbol name="power" size={24} color={textColor} />
+        <Text style={{ color: textColor, marginLeft: 5 }}>Logout</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+        header: () => <CustomHeader />, // use custom header
+        tabBarStyle: {
+          backgroundColor: darkGreen,
+          borderTopWidth: 0,
+          height: 60,
+        },
+        tabBarActiveTintColor: accent,
+        tabBarInactiveTintColor: textColor,
+        tabBarLabelStyle: { fontSize: 12 },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'For You',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
         }}
       />
     </Tabs>

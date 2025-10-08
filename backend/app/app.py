@@ -5,8 +5,13 @@ from .db import get_db, create_all_tables, create_extensions
 from .services import DataCollectionService
 from .models.atractions import Attraction
 import psycopg  
+from .routes.auth import endpoints
+from .routes.auth.auth_middleware import TokenRefreshMiddleware
 
 app = FastAPI()
+app.include_router(endpoints.router)
+
+app.add_middleware(TokenRefreshMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,36 +57,11 @@ async def get_attractions(db: AsyncSession = Depends(get_db)):
 @app.get("/attractions/search")
 async def search_attractions(query: str, db: AsyncSession = Depends(get_db)):
     """Search attractions by query"""
+    if not query:
+        return {"message": "invalid query"}
     attractions = await data_service.search_attractions(db, query)
-    return [attraction.__json__() for attraction in attractions]
+    return attractions
 
-@app.post("/attractions/collect/nyc")
-async def collect_nyc_attractions(db: AsyncSession = Depends(get_db)):
-    """Collect NYC tourist attractions from Google Maps API"""
-    try:
-        attractions = await data_service.collect_nyc_attractions(db)
-        return {
-            "message": f"Successfully collected {len(attractions)} attractions",
-            "attractions": [attraction.__json__() for attraction in attractions]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error collecting attractions: {str(e)}")
-
-@app.post("/attractions/collect/search")
-async def collect_attractions_by_query(
-    query: str, 
-    location: str = "New York, NY",
-    db: AsyncSession = Depends(get_db)
-):
-    """Collect attractions based on a search query"""
-    try:
-        attractions = await data_service.collect_attractions_by_query(db, query, location)
-        return {
-            "message": f"Successfully collected {len(attractions)} attractions",
-            "attractions": [attraction.__json__() for attraction in attractions]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error collecting attractions: {str(e)}")
 
 @app.get("/near_by")
 async def near_by(location: str, distance: int, db: AsyncSession = Depends(get_db)):

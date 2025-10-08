@@ -2,6 +2,9 @@ import os
 import boto3
 import json
 from dotenv import load_dotenv
+from sqlalchemy import select
+from ..models.atractions import Embedding
+import numpy as np
 
 load_dotenv()
 
@@ -15,6 +18,40 @@ bedrock = boto3.client(
     aws_access_key_id=AWS_ACCESS_KEY,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
+
+def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    """Compute cosine similarity between two vectors, normalized 0..1."""
+    a_norm = a / np.linalg.norm(a)
+    b_norm = b / np.linalg.norm(b)
+    return float(np.dot(a_norm, b_norm))  # 1 = identical, 0 = orthogonal
+
+async def get_similar(text: str, db, max_results: int = 20, threshold: float = 0.2):
+        """
+        Return attractions from the database similar to the given text.
+        Threshold: 0..1, minimum similarity (0.2 means >= 80% similar).
+        """
+        vector = await get_embedding(text)  # should be a list or numpy array
+        print("this is the text", text)
+        # Step 1: order by cosine distance in SQL for index use
+        stmt = (
+            select(Embedding)
+            .order_by(Embedding.embedding.cosine_distance(vector))  # pgvector index
+            .limit(max_results)
+        )
+
+        # Correct async usage: await scalars() then call .all()
+        candidates = await db.scalars(stmt)
+        
+        results = []
+        min_similarity = 1.0 - threshold  # convert distance threshold to similarity
+        for r in candidates:
+            sim = cosine_similarity(np.array(r.embedding), np.array(vector))
+            if sim < min_similarity:
+                break  # stop iterating, further items will be less similar
+            results.append(r)
+        print("Found this many", len(results))
+
+        return results
 
 async def get_embedding(text: str) -> list[float]:
     """Fetches a 256-dimensional embedding from Amazon Bedrock's Titan Text Embeddings V2 model."""

@@ -44,6 +44,7 @@
       "typedRoutes": true
     },
     "extra": {
+      "backendUrl" : "http://127.0.0.1:8000",
       "router": {},
       "eas": {
         "projectId": "e78ca522-c629-4a8a-9bff-1b177e2868b4"

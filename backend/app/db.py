@@ -17,7 +17,7 @@ engine = create_async_engine(
     pool_recycle=1800,  # recycle after 30 mins
     # disable psycopg3 automatic server-side prepare (important for PgBouncer / pooled infra)
     connect_args={"prepare_threshold": 0},
-    execution_options={"prepared_statement_cache_size": None}, 
+    execution_options={"use_native_prepared_statements": False}, 
 )
 
 AsyncSessionLocal = sessionmaker(

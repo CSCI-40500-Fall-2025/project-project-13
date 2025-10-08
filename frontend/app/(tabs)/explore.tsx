@@ -1,300 +1,294 @@
-import { StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ScrollView,
+  Image,
+  Text,
+  Linking,
+  Share,
+  Platform,
+  Alert,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors';
+const { width: SCREEN_W } = Dimensions.get("window");
+
+function AutoSizedImage({ uri, maxWidth = SCREEN_W * 0.95, maxHeight = 380 }: { uri: string; maxWidth?: number; maxHeight?: number; }) {
+  const [size, setSize] = React.useState<{ width: number; height: number } | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+    if (!uri) {
+      setLoading(false);
+      return;
+    }
+    Image.getSize(
+      uri,
+      (naturalWidth, naturalHeight) => {
+        if (!mounted) return;
+        const widthRatio = maxWidth / naturalWidth;
+        const heightRatio = maxHeight / naturalHeight;
+        const ratio = Math.min(widthRatio, heightRatio, 1);
+        setSize({ width: naturalWidth * ratio, height: naturalHeight * ratio });
+        setLoading(false);
+      },
+      () => { setLoading(false); }
+    );
+    return () => { mounted = false; };
+  }, [uri]);
+
+  if (loading) return <ActivityIndicator style={{ width: maxWidth, height: maxHeight }} />;
+
+  return <Image source={{ uri }} style={{ width: size?.width, height: size?.height, borderRadius: 12 }} resizeMode="cover" />;
+}
 
 export default function DiscoverScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const BACK_URL = Constants.expoConfig?.extra?.BACK_URL || "http://127.0.0.1:8000";
 
-  // Hardcoded fake events data
-  const fakeEvents = [
-    {
-      id: 1,
-      title: "Central Park Food Festival",
-      date: "March 15, 2024",
-      time: "12:00 PM - 8:00 PM",
-      location: "Central Park, NYC",
-      category: "Food & Drink",
-      price: "Free",
-      description: "Join us for a day of delicious food from NYC's best vendors in the heart of Central Park.",
-      icon: "restaurant"
-    },
-    {
-      id: 2,
-      title: "Broadway Show: Hamilton",
-      date: "March 20, 2024",
-      time: "7:30 PM",
-      location: "Richard Rodgers Theatre",
-      category: "Entertainment",
-      price: "$89 - $199",
-      description: "Experience the revolutionary musical that tells the story of Alexander Hamilton.",
-      icon: "musical-notes"
-    },
-    {
-      id: 3,
-      title: "Brooklyn Bridge Walking Tour",
-      date: "March 18, 2024",
-      time: "10:00 AM - 12:00 PM",
-      location: "Brooklyn Bridge",
-      category: "Tourism",
-      price: "$25",
-      description: "Discover the history and architecture of one of NYC's most iconic landmarks.",
-      icon: "walk"
-    },
-    {
-      id: 4,
-      title: "MOMA Art Exhibition",
-      date: "March 22, 2024",
-      time: "11:00 AM - 5:00 PM",
-      location: "Museum of Modern Art",
-      category: "Culture",
-      price: "$25",
-      description: "Explore contemporary art from emerging and established artists around the world.",
-      icon: "color-palette"
-    },
-    {
-      id: 5,
-      title: "Yankees vs Red Sox Game",
-      date: "March 25, 2024",
-      time: "7:05 PM",
-      location: "Yankee Stadium",
-      category: "Sports",
-      price: "$45 - $150",
-      description: "Watch the classic rivalry between the Yankees and Red Sox at Yankee Stadium.",
-      icon: "baseball"
-    },
-    {
-      id: 6,
-      title: "Hunter College Career Fair",
-      date: "March 28, 2024",
-      time: "10:00 AM - 3:00 PM",
-      location: "Hunter College Campus",
-      category: "Education",
-      price: "Free",
-      description: "Connect with top employers and explore career opportunities in various fields.",
-      icon: "briefcase"
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAllAttractions();
+  }, []);
+
+  const fetchAllAttractions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACK_URL}/attractions`);
+      const data = await res.json();
+      setResults(data);
+    } catch (err: any) {
+      setError(err?.message || "Network error");
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const doSearch = async () => {
+    if (!query.trim()) {
+      fetchAllAttractions();
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACK_URL}/attractions/search?query=${encodeURIComponent(query.trim())}`);
+      const data = await res.json();
+      setResults(data);
+    } catch (err: any) {
+      setError(err?.message || "Network error");
+    } finally { setLoading(false); }
+  };
+
+  const openUrl = async (url?: string) => {
+    if (!url) return;
+    try {
+      const ok = await Linking.canOpenURL(url);
+      if (ok) await Linking.openURL(url);
+      else Alert.alert("Can't open link", url);
+    } catch { Alert.alert("Failed to open link"); }
+  };
+
+  const openMaps = (lat?: number, lng?: number, label?: string) => {
+    if (lat == null || lng == null) return;
+    const query = `${lat},${lng}`;
+    const url = Platform.OS === "ios"
+      ? `maps:0,0?q=${encodeURIComponent(label || "")}@${query}`
+      : `https://www.google.com/maps/search/?api=1&query=${query}`;
+    openUrl(url);
+  };
+
+  const shareAttraction = async (a: any) => {
+    try {
+      const text = a.website || a.formatted_address || a.location || JSON.stringify(a).slice(0, 300);
+      await Share.share({ message: text });
+    } catch { Alert.alert("Share failed"); }
+  };
+
+  const buildMedia = (a: any) => {
+    const imgs: string[] = Array.isArray(a.images)
+      ? a.images.map((p: any) => p.url).filter(Boolean)
+      : [];
+    const vids: any[] = Array.isArray(a.videos) ? a.videos.filter(Boolean) : [];
+    const media: Array<{ type: "image" | "video"; url: string; title?: string }> = [];
+    imgs.forEach(u => media.push({ type: "image", url: u }));
+    vids.forEach(v => media.push({ type: "video", url: v.url || v, title: v.title || v.url }));
+    return media;
+  };
+
+  const renderCard = (attraction: any, i: number) => {
+    const media = buildMedia(attraction);
+    const reviews = Array.isArray(attraction.reviews) ? attraction.reviews : [];
+    const opening_hours = attraction.opening_hours;
+    const address = attraction.formatted_address || attraction.address || attraction.vicinity || "";
+    return (
+      <View key={i} style={styles.card}>
+        {/* Media carousel */}
+        {media.length > 0 && (
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 12 }}
+          snapToInterval={SCREEN_W * 0.9} // width of each card
+          decelerationRate="fast"
+          contentContainerStyle={{
+            paddingLeft: 0, // ensures first image starts at left edge
+            paddingRight: SCREEN_W * 0.05, // small peek for last item
+          }}
+        >
+          {media.map((m, idx) => (
+            <View
+              key={idx}
+              style={{
+                width: SCREEN_W * 0.9, // slightly narrower than full screen
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 8, // spacing between media
+              }}
+            >
+              <AutoSizedImage uri={m.url} maxWidth={SCREEN_W * 0.9} />
+              {m.type === "video" && (
+                <View style={styles.playOverlay}>
+                  <Ionicons name="play" size={40} color="#fff" />
+                </View>
+              )}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+
+        {/* Title + address + rating */}
+        <Text style={styles.title}>{attraction.location || attraction.description}</Text>
+        {address ? <Text style={styles.address}>{address}</Text> : null}
+        {typeof attraction.rating === "number" && (
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={16} color="#ffd86b" />
+            <Text style={styles.ratingText}>{attraction.rating}</Text>
+            {typeof attraction.user_ratings_total === "number" && <Text style={styles.ratingCount}>({attraction.user_ratings_total})</Text>}
+          </View>
+        )}
+
+        {/* Links */}
+        <View style={styles.linksRow}>
+          {attraction.website && (
+            <TouchableOpacity style={styles.linkBtn} onPress={() => openUrl(attraction.website)}>
+              <Ionicons name="link" size={16} color="#fff" />
+              <Text style={styles.linkText}>Website</Text>
+            </TouchableOpacity>
+          )}
+          {(attraction.phone || attraction.international_phone) && (
+            <TouchableOpacity style={styles.linkBtn} onPress={() => openUrl(`tel:${attraction.phone || attraction.international_phone}`)}>
+              <Ionicons name="call" size={16} color="#fff" />
+              <Text style={styles.linkText}>Call</Text>
+            </TouchableOpacity>
+          )}
+          {attraction.latitude && attraction.longitude && (
+            <TouchableOpacity style={styles.linkBtn} onPress={() => openMaps(attraction.latitude, attraction.longitude, attraction.location)}>
+              <Ionicons name="navigate" size={16} color="#fff" />
+              <Text style={styles.linkText}>Map</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.linkBtn} onPress={() => shareAttraction(attraction)}>
+            <Ionicons name="share-social" size={16} color="#fff" />
+            <Text style={styles.linkText}>Share</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Opening hours */}
+        {opening_hours?.weekday_text?.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.sectionTitle}>Opening Hours</Text>
+            {opening_hours.weekday_text.map((line: string, idx: number) => (
+              <Text key={idx} style={styles.openText}>{line}</Text>
+            ))}
+          </View>
+        )}
+
+        {/* Reviews */}
+        {reviews.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.sectionTitle}>Reviews</Text>
+            {reviews.map((r: any, idx: number) => (
+              <View key={idx} style={styles.reviewCard}>
+                <Text style={styles.reviewAuthor}>{r.author_name || r.author || "User"}</Text>
+                {typeof r.rating === "number" && <Text style={styles.reviewRating}>Rating: {r.rating}</Text>}
+                {r.text && <Text style={styles.reviewText}>{r.text}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <ThemedView style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>Discover NYC</ThemedText>
-      </ThemedView>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+      {/* Search */}
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="Search..."
+          placeholderTextColor="#9fb99a"
+          onChangeText={setQuery}
+          value={query}
+          returnKeyType="search"
+          onSubmitEditing={doSearch}
+        />
+        <TouchableOpacity onPress={doSearch} style={styles.searchBtn}>
+          <Ionicons name="send" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
-      {/* Search Bar */}
-      <ThemedView style={styles.searchSection}>
-        <View style={[styles.searchContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Ionicons name="search" size={20} color={colors.text} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search places, events, restaurants..."
-            placeholderTextColor={colors.text + '80'}
-          />
-        </View>
-      </ThemedView>
-
-      {/* Categories */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Categories</ThemedText>
-        <View style={styles.categoryGrid}>
-          <TouchableOpacity style={[styles.categoryCard, { backgroundColor: colors.tint }]}>
-            <Ionicons name="restaurant" size={24} color="white" />
-            <ThemedText style={styles.categoryText}>Restaurants</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.categoryCard, { backgroundColor: colors.tint }]}>
-            <Ionicons name="calendar" size={24} color="white" />
-            <ThemedText style={styles.categoryText}>Events</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.categoryCard, { backgroundColor: colors.tint }]}>
-            <Ionicons name="camera" size={24} color="white" />
-            <ThemedText style={styles.categoryText}>Attractions</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.categoryCard, { backgroundColor: colors.tint }]}>
-            <Ionicons name="school" size={24} color="white" />
-            <ThemedText style={styles.categoryText}>Hunter</ThemedText>
-          </TouchableOpacity>
-        </View>
-      </ThemedView>
-
-      {/* Featured Events */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Featured Events</ThemedText>
-        {fakeEvents.map((event) => (
-          <TouchableOpacity key={event.id} style={[styles.eventCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-            <View style={styles.eventHeader}>
-              <View style={styles.eventIconContainer}>
-                <Ionicons name={event.icon as any} size={24} color={colors.tint} />
-              </View>
-              <View style={styles.eventInfo}>
-                <ThemedText style={styles.eventTitle}>{event.title}</ThemedText>
-                <ThemedText style={[styles.eventCategory, { color: colors.tint }]}>{event.category}</ThemedText>
-              </View>
-              <View style={styles.eventPriceContainer}>
-                <ThemedText style={[styles.eventPrice, { color: colors.tint }]}>{event.price}</ThemedText>
-              </View>
-            </View>
-            <ThemedText style={[styles.eventDescription, { color: colors.text + 'CC' }]}>{event.description}</ThemedText>
-            <View style={styles.eventDetails}>
-              <View style={styles.eventDetailRow}>
-                <Ionicons name="calendar-outline" size={16} color={colors.text + '80'} />
-                <ThemedText style={[styles.eventDetailText, { color: colors.text + '80' }]}>{event.date}</ThemedText>
-              </View>
-              <View style={styles.eventDetailRow}>
-                <Ionicons name="time-outline" size={16} color={colors.text + '80'} />
-                <ThemedText style={[styles.eventDetailText, { color: colors.text + '80' }]}>{event.time}</ThemedText>
-              </View>
-              <View style={styles.eventDetailRow}>
-                <Ionicons name="location-outline" size={16} color={colors.text + '80'} />
-                <ThemedText style={[styles.eventDetailText, { color: colors.text + '80' }]}>{event.location}</ThemedText>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ThemedView>
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#3a7d3a" />
+      ) : error ? (
+        <Text style={{ color: "#fff", padding: 16 }}>{error}</Text>
+      ) : results.length === 0 ? (
+        <Text style={{ color: "#fff", padding: 16 }}>No attractions found</Text>
+      ) : (
+        results.map(renderCard)
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  searchSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 15,
-  },
-  categoryCard: {
-    width: '45%',
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-  },
-  categoryText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-  placeholderCard: {
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 16,
-    opacity: 0.6,
-    textAlign: 'center',
-  },
-  eventCard: {
-    marginBottom: 15,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  eventHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  eventIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(10, 126, 164, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  eventInfo: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  eventCategory: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  eventPriceContainer: {
-    alignItems: 'flex-end',
-  },
-  eventPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  eventDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  eventDetails: {
-    gap: 8,
-  },
-  eventDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  eventDetailText: {
-    fontSize: 13,
-  },
+  container: { flex: 1, backgroundColor: "#0f1a10" },
+  searchRow: { flexDirection: "row", padding: 12 },
+  input: { flex: 1, backgroundColor: "#122012", padding: 10, borderRadius: 12, color: "#fff", marginRight: 8 },
+  searchBtn: { backgroundColor: "#3a7d3a", padding: 10, borderRadius: 12, justifyContent: "center", alignItems: "center" },
+
+  card: { marginBottom: 24, backgroundColor: "#0f2416", borderRadius: 12, padding: 16 },
+
+  title: { fontSize: 20, fontWeight: "700", color: "#fff", marginBottom: 4 },
+  address: { color: "#9fb99a", marginBottom: 6 },
+
+  ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  ratingText: { color: "#fff", fontWeight: "700", marginLeft: 4 },
+  ratingCount: { color: "#9fb99a", marginLeft: 4 },
+
+  linksRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 12 },
+  linkBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: "#224d22", marginRight: 8, marginTop: 6 },
+  linkText: { color: "#fff", marginLeft: 6 },
+
+  sectionTitle: { color: "#fff", fontWeight: "700", marginBottom: 6 },
+  openText: { color: "#9fb99a", fontSize: 13 },
+
+  reviewCard: { padding: 12, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 12, marginBottom: 8 },
+  reviewAuthor: { color: "#fff", fontWeight: "700", marginBottom: 2 },
+  reviewRating: { color: "#ffd86b", marginBottom: 2 },
+  reviewText: { color: "#9fb99a", fontSize: 13 },
+
+  playOverlay: { position: "absolute", alignSelf: "center", top: "40%", backgroundColor: "rgba(0,0,0,0.35)", borderRadius: 40, padding: 12 },
 });
