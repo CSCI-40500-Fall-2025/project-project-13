@@ -21,7 +21,7 @@ export default function TabLayout() {
     globalThis.location.href = "/(auth)/login";
   };
 
-  // Custom header component
+
   const CustomHeader = () => (
     <View
       style={{
@@ -31,6 +31,7 @@ export default function TabLayout() {
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
+        marginTop: 40,
       }}
     >
       <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>NYC Discovery</Text>
@@ -44,14 +45,14 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        header: () => <CustomHeader />, // use custom header
+        header: () => <CustomHeader />,
         tabBarStyle: {
           backgroundColor: darkGreen,
           borderTopWidth: 0,
           height: 60,
         },
-        tabBarActiveTintColor: accent,
-        tabBarInactiveTintColor: textColor,
+        tabBarActiveTintColor: textColor,
+        tabBarInactiveTintColor: accent,
         tabBarLabelStyle: { fontSize: 12 },
       }}
     >

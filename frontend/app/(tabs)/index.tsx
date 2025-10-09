@@ -8,13 +8,13 @@ import { Colors } from '@/constants/Colors';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = Colors[colorScheme ?? 'dark'];
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <ThemedView style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>NYC Discovery</ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>For You</ThemedText>
         <TouchableOpacity style={styles.locationButton}>
           <Ionicons name="location-outline" size={20} color={colors.tint} />
           <ThemedText style={[styles.locationText, { color: colors.tint }]}>NYC</ThemedText>
@@ -37,6 +37,9 @@ export default function HomeScreen() {
         </ThemedView>
         <ThemedView style={styles.placeholderCard}>
           <ThemedText style={styles.placeholderText}>Based on your interests and past visits</ThemedText>
+        </ThemedView>
+        <ThemedView style={styles.placeholderCard}>
+          <ThemedText style={styles.placeholderText}>Bookmark events to receive more reccomendations!</ThemedText>
         </ThemedView>
       </ThemedView>
 
@@ -67,7 +70,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
   },
   headerTitle: {
