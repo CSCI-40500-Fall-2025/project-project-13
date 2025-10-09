@@ -8,7 +8,6 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const darkGreen = '#1a2a1a';
   const accent = '#3a7d3a';
   const textColor = '#c4f0c4';
@@ -47,7 +46,7 @@ export default function TabLayout() {
       screenOptions={{
         header: () => <CustomHeader />,
         tabBarStyle: {
-          backgroundColor: darkGreen,
+          backgroundColor: darkGreen, // might want to make this dynamic too (purple for hunter), or choose a neutral dark color
           borderTopWidth: 0,
           height: 60,
         },
@@ -68,6 +67,13 @@ export default function TabLayout() {
         options={{
           title: 'Discover',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="clubhub"
+        options={{
+          title: 'Club Hub',
+          tabBarIcon: ({ color }) => <IconSymbol name="graduationcap.fill" size={24} color={color} />,
         }}
       />
     </Tabs>
