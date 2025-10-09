@@ -19,6 +19,7 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'magnifyingglass': 'search', // Add this line
+  'graduationcap.fill': 'school', // Add this line
 } as IconMapping;
 
 /**
