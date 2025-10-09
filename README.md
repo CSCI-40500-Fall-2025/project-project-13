@@ -39,4 +39,4 @@ Backend:
 - Then run: python3 run.py
 
 
-You can also download an APK containing our frontend: https://expo.dev/accounts/ataurm/projects/frontend/builds/3b81805f-7d2b-4987-a9cf-44323e088f36
+You can also download an APK containing our frontend: https://expo.dev/accounts/ataurm/projects/frontend/builds/b5f70672-fec8-4da7-b941-7320826a12d5

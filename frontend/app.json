@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.morningzephyr.frontend",
+      "bundleIdentifier": "com.ataurm.frontend",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -21,7 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.morningzephyr.frontend"
+      "package": "com.ataurm.frontend"
     },
     "web": {
       "bundler": "metro",
@@ -44,17 +44,19 @@
       "typedRoutes": true
     },
     "extra": {
-      "backendUrl" : "http://127.0.0.1:8000",
-      "router": {},
+      "backendUrl": "http://127.0.0.1:8000",
+      "router": {
+        "origin": false
+      },
       "eas": {
-        "projectId": "e78ca522-c629-4a8a-9bff-1b177e2868b4"
+        "projectId": "7b338040-8c07-4e22-b12a-8f86cca1ba3f"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/e78ca522-c629-4a8a-9bff-1b177e2868b4"
+      "url": "https://u.expo.dev/c5ee6d36-36ab-49d0-8b2c-cea312207f7b"
     }
   }
 }

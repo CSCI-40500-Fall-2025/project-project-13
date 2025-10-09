@@ -8,11 +8,9 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const darkGreen = '#1a2a1a';
   const accent = '#3a7d3a';
   const textColor = '#c4f0c4';
-  const darkPurple = '#26152B'; // Get the dark purple color
 
   const handleLogout = async () => {
     await deleteItem("access_token");
