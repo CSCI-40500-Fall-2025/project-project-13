@@ -55,6 +55,8 @@ Architecture:
 
 <img width="2072" height="1358" alt="image" src="https://github.com/user-attachments/assets/f413134b-86e3-43e7-bd85-0baad370e586" />
 
+The Backend Service handles everything from querying the DB for event recommendations to udating the DB with Events users created and handling likes, comment etc. 
+
 - Technologies:
   - React Native with typescript 
   - Relational SQL database for users to have personalized and saved locations and events
