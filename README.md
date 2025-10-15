@@ -40,3 +40,18 @@ Backend:
 
 
 You can also download an APK containing our frontend: https://expo.dev/accounts/ataurm/projects/frontend/builds/b5f70672-fec8-4da7-b941-7320826a12d5
+
+
+Layered Software Architecture:
+- Important Qualities:
+  - Security 
+  - Preformance
+  - Short product lifetime
+  - Able to handle large quantity of simultaneous users
+Architecture:
+
+- Technologies:
+  - React Native with typescript 
+  - Relational SQL database for users to have personalized and saved locations and events
+  - Mobile and web platform
+  - Public cloud, AWS
