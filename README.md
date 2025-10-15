@@ -53,5 +53,5 @@ Architecture:
 - Technologies:
   - React Native with typescript 
   - Relational SQL database for users to have personalized and saved locations and events
-  - Mobile and web platform
+  - Mobile platform
   - Public cloud, AWS
