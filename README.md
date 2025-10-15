@@ -53,6 +53,7 @@ Architecture:
 
 <img width="1594" height="1162" alt="image" src="https://github.com/user-attachments/assets/5cf0e92c-b481-4c70-844c-7ed418ff8de9" />
 
+<img width="2072" height="1358" alt="image" src="https://github.com/user-attachments/assets/f413134b-86e3-43e7-bd85-0baad370e586" />
 
 - Technologies:
   - React Native with typescript 
