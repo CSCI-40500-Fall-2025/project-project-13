@@ -48,7 +48,11 @@ Layered Software Architecture:
   - Preformance
   - Short product lifetime
   - Able to handle large quantity of simultaneous users
+  
 Architecture:
+
+<img width="1594" height="1162" alt="image" src="https://github.com/user-attachments/assets/5cf0e92c-b481-4c70-844c-7ed418ff8de9" />
+
 
 - Technologies:
   - React Native with typescript 
