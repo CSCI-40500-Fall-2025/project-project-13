@@ -57,6 +57,7 @@ async def get_attractions(db: AsyncSession = Depends(get_db)):
 @app.get("/attractions/search")
 async def search_attractions(query: str, db: AsyncSession = Depends(get_db)):
     """Search attractions by query"""
+    query.strip(" ")
     if not query:
         return {"message": "invalid query"}
     attractions = await data_service.search_attractions(db, query)

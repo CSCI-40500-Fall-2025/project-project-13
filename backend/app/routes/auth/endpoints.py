@@ -18,6 +18,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     email = body.email
     password = body.password
+    email.strip(" ")
+    password.strip(" ")
 
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password required")
@@ -72,6 +74,8 @@ async def create_user(body: RegisterRequest, db: AsyncSession = Depends(get_db))
     email = body.email
     password = body.password
 
+    email.strip(" ")
+    password.strip(" ")
     if not email or not password:
         raise HTTPException(status_code=400, detail="Missing required fields")
 
