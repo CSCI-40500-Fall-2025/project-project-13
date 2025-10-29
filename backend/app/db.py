@@ -29,6 +29,8 @@ AsyncSessionLocal = sessionmaker(
 
 # Async dependency for FastAPI
 async def get_db():
+    if os.getenv("RUNNING_TESTS", False):
+        yield 
     async with AsyncSessionLocal() as db:
         yield db
 
