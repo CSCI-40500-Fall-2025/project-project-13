@@ -1,5 +1,8 @@
 # NYC Discovery App
 
+## Status: 
+[![Run Backend Tests](https://github.com/CSCI-40500-Fall-2025/project-project-13/actions/workflows/tests.yml/badge.svg)](https://github.com/CSCI-40500-Fall-2025/project-project-13/actions/workflows/tests.yml)
+
 ## Product Vision
 
 FOR NYC residents and visitors,
