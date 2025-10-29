@@ -25,10 +25,11 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r backend/requirements.txt
+          pip install pytest-asyncio aiosqlite
 
       - name: Run tests
         env:
-          DB: "sqlite+aiosqlite:///:memory:"
+          DB_URL: "sqlite+aiosqlite:///:memory:"
           AWS_ACCESS_KEY: "fake"
           AWS_SECRET_ACCESS_KEY: "fake"
           PYTHONPATH: "${{ github.workspace }}/backend"
