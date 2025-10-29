@@ -72,8 +72,6 @@ async def create_user(body: RegisterRequest, db: AsyncSession = Depends(get_db))
     email = body.email
     password = body.password
 
-    print("THIS IS THE PASSWORD", password)
-
     if not email or not password:
         raise HTTPException(status_code=400, detail="Missing required fields")
 
@@ -86,7 +84,6 @@ async def create_user(body: RegisterRequest, db: AsyncSession = Depends(get_db))
     if existing:
         raise HTTPException(status_code=400, detail="Email already in use.")
 
-    print("PASSWORD", password)
     new_user = User(
         email=email,
         password=hashify(password),
