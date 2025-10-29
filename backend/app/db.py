@@ -9,23 +9,24 @@ import os
 load_dotenv()
 SQLALCHEMY_DATABASE_URL = os.getenv("DB")
 
-# Module-level engine + sessionmaker singletons (created once per process)
-engine = create_async_engine(
-    SQLALCHEMY_DATABASE_URL,
-    echo=True,
-    pool_pre_ping=True,
-    pool_recycle=1800,  # recycle after 30 mins
-    # disable psycopg3 automatic server-side prepare (important for PgBouncer / pooled infra)
-    connect_args={"prepare_threshold": 0},
-    execution_options={"use_native_prepared_statements": False}, 
-)
+if os.getenv("RUNNING_TESTS", False):
+    # Module-level engine + sessionmaker singletons (created once per process)
+    engine = create_async_engine(
+        SQLALCHEMY_DATABASE_URL,
+        echo=True,
+        pool_pre_ping=True,
+        pool_recycle=1800,  # recycle after 30 mins
+        # disable psycopg3 automatic server-side prepare (important for PgBouncer / pooled infra)
+        connect_args={"prepare_threshold": 0},
+        execution_options={"use_native_prepared_statements": False}, 
+    )
 
-AsyncSessionLocal = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=False,
-)
+    AsyncSessionLocal = sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+    )
 
 # Async dependency for FastAPI
 async def get_db():
