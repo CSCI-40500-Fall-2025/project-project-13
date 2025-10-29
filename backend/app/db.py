@@ -9,7 +9,7 @@ import os
 load_dotenv()
 SQLALCHEMY_DATABASE_URL = os.getenv("DB")
 
-if os.getenv("RUNNING_TESTS", False):
+if not os.getenv("RUNNING_TESTS", False):
     # Module-level engine + sessionmaker singletons (created once per process)
     engine = create_async_engine(
         SQLALCHEMY_DATABASE_URL,
