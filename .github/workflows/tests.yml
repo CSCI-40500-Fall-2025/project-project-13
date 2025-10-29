@@ -28,7 +28,10 @@ jobs:
 
       - name: Run tests
         env:
-          PYTHONPATH: ${{ github.workspace }}/backend
+          DB_URL: "sqlite+aiosqlite:///:memory:"
+          AWS_ACCESS_KEY: "fake"
+          AWS_SECRET_ACCESS_KEY: "fake"
+          PYTHONPATH: "${{ github.workspace }}/backend"
         run: |
           source venv/bin/activate
           pytest backend/tests -v
