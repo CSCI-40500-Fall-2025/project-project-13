@@ -2,13 +2,13 @@ name: Create Snapshot Release
 
 on:
   workflow_run:
-    workflows: ["Run Backend Tests"]   # run snapshot release if tests workflow ran ( so runs on every commit )
+    workflows: ["Run Backend Tests"]
     types:
       - completed
 
 jobs:
-  release: # continue with snap shot only if tests passed
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}   
+  release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -44,3 +44,19 @@ jobs:
           files: snapshot_${{ github.sha }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create deployment record
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: snapshots
+          ref: ${{ github.sha }}
+          description: "Snapshot #${{ env.SNAP_NUM }}"
+          payload: '{"release_tag": "snapshot-${{ env.SNAP_NUM }}"}'
+
+      - name: Mark deployment as successful
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          state: success
+          environment: snapshots
