@@ -1,12 +1,14 @@
 name: Create Snapshot Release
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Run Backend Tests"]   # run snapshot release if tests workflow ran ( so runs on every commit )
+    types:
+      - completed
 
 jobs:
-  release:
+  release: # continue with snap shot only if tests passed
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}   
     runs-on: ubuntu-latest
 
     steps:
