@@ -10,14 +10,16 @@ jobs:
   release:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      deployments: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Create zip archive
-        run: |
-          zip -r snapshot_${{ github.sha }}.zip .
+        run: zip -r snapshot_${{ github.sha }}.zip .
 
       - name: Calculate snapshot number
         id: calc
@@ -47,20 +49,28 @@ jobs:
 
       - name: Create deployment record
         id: create_deployment
-        uses: chrnorm/deployment@v2   
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          environment: snapshots
-          ref: ${{ github.sha }}
-          description: "Snapshot #${{ env.SNAP_NUM }}"
-          environment-url: https://github.com/${{ github.repository }}/releases/tag/snapshot-${{ env.SNAP_NUM }}
-          payload: '{"release_tag": "snapshot-${{ env.SNAP_NUM }}"}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          DEPLOYMENT_ID=$(gh api repos/$REPO/deployments \
+            -f ref=${GITHUB_SHA} \
+            -f environment="snapshots" \
+            -f description="Snapshot #${SNAP_NUM}" \
+            -f auto_merge=false \
+            -f required_contexts='[]' \
+            -f environment_url="https://github.com/$REPO/releases/tag/snapshot-${SNAP_NUM}" \
+            --jq '.id')
+          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_ENV
+          echo "Created deployment ID: $DEPLOYMENT_ID"
 
-      - name: Mark deployment as successful
-        uses: chrnorm/deployment-status@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          state: success
-          environment: snapshots
-          environment-url: https://github.com/${{ github.repository }}/releases/tag/snapshot-${{ env.SNAP_NUM }}
-          deployment-id: ${{ steps.create_deployment.outputs.deployment_id }}
+      - name: Mark deployment successful
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          DEPLOYMENT_ID: ${{ env.DEPLOYMENT_ID }}
+        run: |
+          gh api repos/$REPO/deployments/$DEPLOYMENT_ID/statuses \
+            -f state=success \
+            -f environment_url="https://github.com/$REPO/releases/tag/snapshot-${SNAP_NUM}" \
+            -f description="Snapshot #${SNAP_NUM} successfully created"
