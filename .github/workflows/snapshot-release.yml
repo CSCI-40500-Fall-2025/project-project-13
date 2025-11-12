@@ -1,0 +1,40 @@
+name: Create Snapshot Release
+
+on:
+  push:
+    branches:
+      - main   # or whatever branch you want to trigger from
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create zip archive
+        run: |
+          zip -r snapshot_${{ github.sha }}.zip .
+
+      - name: Create GitHub release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: snapshot-${{ github.run_number }}
+          name: "Snapshot #${{ github.run_number }}"
+          body: |
+            **Snapshot created automatically**
+            - Commit: ${{ github.sha }}
+            - Author: ${{ github.actor }}
+            - Date: ${{ github.event.head_commit.timestamp }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload snapshot asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: snapshot-${{ github.run_number }}
+          files: snapshot_${{ github.sha }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
