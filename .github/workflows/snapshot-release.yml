@@ -62,4 +62,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           state: success
           environment: snapshots
-          environment_url: https://github.com/${{ github.repository }}/releases/tag/snapshot-${{ env.SNAP_NUM }}
+          environment-url: https://github.com/${{ github.repository }}/releases/tag/snapshot-${{ env.SNAP_NUM }}
