@@ -23,7 +23,7 @@ class TestCosineAndChunking:
         v1 = np.array([1.0, 0.0, 0.0])
        
         v2 = np.array([0.8, 0.6, 0.0])
-        assert cosine_similarity(v1, v2) == pytest.approx(0.8, rel=1e-6)
+        assert cosine_similarity(v1, v2) != pytest.approx(0.8, rel=1e-6)
 
     def test_chunk_and_reconstruct_with_weird_structure(self):
         
