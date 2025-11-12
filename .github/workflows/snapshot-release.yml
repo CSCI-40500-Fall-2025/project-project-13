@@ -3,7 +3,7 @@ name: Create Snapshot Release
 on:
   push:
     branches:
-      - main   # or whatever branch you want to trigger from
+      - main
 
 jobs:
   release:
@@ -17,12 +17,16 @@ jobs:
         run: |
           zip -r snapshot_${{ github.sha }}.zip .
 
+      - name: Calculate snapshot number
+        id: calc
+        run: echo "SNAP_NUM=$(( $GITHUB_RUN_NUMBER + 3 ))" >> $GITHUB_ENV
+
       - name: Create GitHub release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: snapshot-${{ github.run_number }}
-          name: "Snapshot #${{ github.run_number }}"
+          tag_name: snapshot-${{ env.SNAP_NUM }}
+          name: "Snapshot #${{ env.SNAP_NUM }}"
           body: |
             **Snapshot created automatically**
             - Commit: ${{ github.sha }}
@@ -34,7 +38,7 @@ jobs:
       - name: Upload snapshot asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: snapshot-${{ github.run_number }}
+          tag_name: snapshot-${{ env.SNAP_NUM }}
           files: snapshot_${{ github.sha }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
