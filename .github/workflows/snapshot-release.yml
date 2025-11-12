@@ -46,12 +46,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create deployment record
+        id: create_deployment
         uses: chrnorm/deployment-action@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           environment: snapshots
           ref: ${{ github.sha }}
           description: "Snapshot #${{ env.SNAP_NUM }}"
+          environment_url: https://github.com/${{ github.repository }}/releases/tag/snapshot-${{ env.SNAP_NUM }}
           payload: '{"release_tag": "snapshot-${{ env.SNAP_NUM }}"}'
 
       - name: Mark deployment as successful
@@ -60,3 +62,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           state: success
           environment: snapshots
+          environment_url: https://github.com/${{ github.repository }}/releases/tag/snapshot-${{ env.SNAP_NUM }}
