@@ -11,7 +11,7 @@ from sqlalchemy import select
 import os
 from typing import Optional
 from starlette.responses import JSONResponse, Response
-
+from ...__init__ import logger
 
 load_dotenv()
 ENV = os.getenv("ENV", "development")
@@ -23,8 +23,9 @@ REFRESH_TOKEN_EXPIRE_MINUTES = 60
 # Load keys from environment
 # ---------------------------
 def load_keys_from_env():
+    logger.info("Loading RSU keys for auth")
     try:
-        return {
+        res = {
             "latest": {
                 "private": os.environ["JWT_PRIVATE_KEY_LATEST"].replace("\\n", "\n"),
                 "public": os.environ["JWT_PUBLIC_KEY_LATEST"].replace("\\n", "\n")
@@ -34,7 +35,10 @@ def load_keys_from_env():
                 "public": os.environ["JWT_PUBLIC_KEY_PREVIOUS"].replace("\\n", "\n")
             }
         }
+        logger.info("Loaded RSU KEYs")
+        return res
     except KeyError as e:
+        logger.critical("RSU keys could not be loaded")
         raise RuntimeError(f"Missing environment variable: {e}")
 
 KEYPAIRS = load_keys_from_env()
@@ -179,38 +183,45 @@ async def update_tokens(
             refresh_valid = False
 
         if not refresh_valid:
+            logger.debug("Session expired")
             raise HTTPException(status_code=401, detail="Session expired. Please log in again.")
 
         # normalize user id to string for comparisons and DB usage
         user_id = refresh_payload.get("sub")
         if user_id is None:
+            logger.debug("Invalid refresh token payload")
             raise HTTPException(status_code=401, detail="Invalid refresh token payload")
         user_id_str = str(user_id)
 
         # Match user_id from token with header cookie
         if str(headers.user_id) != user_id_str:
+            logger.debug("User ID mismatch")
             raise HTTPException(status_code=401, detail="User ID mismatch")
 
         if access_valid:
             # normalize access token subject and compare
             access_sub = str(access_payload.get("sub")) if access_payload is not None else None
             if access_sub is None or access_sub != user_id_str:
+                logger.debug("User ID mismatch (access token)")
                 raise HTTPException(status_code=401, detail="User ID mismatch (access token)")
 
         # Fetch user from DB (use integer id if your DB id is integer)
         try:
             user_pk = int(user_id_str)
         except ValueError:
+            logger.debug("Invalid user id in token")
             raise HTTPException(status_code=401, detail="Invalid user id in token")
 
         result = await db.execute(select(User).where(User.id == user_pk))
         user = result.scalar_one_or_none()
 
         if not user:
+            logger.debug("User not found")
             raise HTTPException(status_code=401, detail="User not found")
 
         # Ensure the stored refresh token matches the one sent
         if user.refresh != headers.refresh_token:
+            logger.deubg("Invalid refresh token")
             raise HTTPException(status_code=401, detail="Invalid refresh token")
 
         # If access is still valid, only reissue access token

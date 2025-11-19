@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy import select
 from ..models.atractions import Embedding
 import numpy as np
+from ..__init__ import logger
 
 load_dotenv()
 
@@ -31,7 +32,6 @@ async def get_similar(text: str, db, max_results: int = 20, threshold: float = 0
         Threshold: 0..1, minimum similarity (0.2 means >= 80% similar).
         """
         vector = await get_embedding(text)  # should be a list or numpy array
-        print("this is the text", text)
         # Step 1: order by cosine distance in SQL for index use
         stmt = (
             select(Embedding)
@@ -49,7 +49,8 @@ async def get_similar(text: str, db, max_results: int = 20, threshold: float = 0
             if sim < min_similarity:
                 break  # stop iterating, further items will be less similar
             results.append(r)
-        print("Found this many", len(results))
+    
+        logger.debug(f"Found this many results: {len(results)}")
 
         return results
 
@@ -73,14 +74,13 @@ async def get_embedding(text: str) -> list[float]:
         
         result = json.loads(response['body'].read())
         embedding = result.get('embedding', None)
-        print("EMBEDDING:", embedding)
         if embedding is None:
             raise ValueError("Embedding not found in the response.")
 
         return embedding
 
     except Exception as e:
-        print("error getting embedding: ", e)
+        logger.critical(f"error getting embedding: {e}")
         raise
     
 from chonkie import RecursiveChunker, RecursiveRules, RecursiveLevel
@@ -109,20 +109,23 @@ def chunk_text(text: str):
         "end": end_index
     }
     """
-    chunks = chunker(text)
-    start_idx = 0
-    chunk_info = []
+    try:
+        chunks = chunker(text)
+        start_idx = 0
+        chunk_info = []
 
-    for chunk in chunks:
-        end_idx = start_idx + len(chunk.text)
-        chunk_info.append({
-            "text": chunk.text,
-            "start": start_idx,
-            "end": end_idx
-        })
-        start_idx = end_idx 
+        for chunk in chunks:
+            end_idx = start_idx + len(chunk.text)
+            chunk_info.append({
+                "text": chunk.text,
+                "start": start_idx,
+                "end": end_idx
+            })
+            start_idx = end_idx 
 
-    return chunk_info
+        return chunk_info
+    except Exception as e:
+        logger.critical(f"Error in chunking text: {e}")
 
 def reconstruct_text(chunks: list[str]) -> str:
     """

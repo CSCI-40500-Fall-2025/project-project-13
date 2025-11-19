@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      LOG_LEVEL: DEBUG
 
     steps:
       - name: Checkout repo

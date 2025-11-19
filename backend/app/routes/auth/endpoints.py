@@ -10,12 +10,13 @@ from datetime import datetime
 from .request_models import LoginRequest, RegisterRequest, VerifyRequest, ResendRequest, HeaderParams
 from .logic import ENV
 from starlette.responses import JSONResponse
-
+from ...__init__ import logger
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login")
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
+    logger.debug("/login called")
     email = body.email
     password = body.password
     email.strip(" ")
@@ -54,6 +55,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/logout")
 def logout(response: Response):
+    logger.debug("/logout called")
     secure = True if ENV == "production" else False
     samesite = "None" 
 
@@ -71,6 +73,7 @@ def logout(response: Response):
 
 @router.post("/signup")
 async def create_user(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    logger.debug("/signup called")
     email = body.email
     password = body.password
 
