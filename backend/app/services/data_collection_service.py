@@ -42,7 +42,8 @@ class DataCollectionService:
                 attraction = Attraction(
                     # Basic information
                     location=place['name'],
-                    description=place.get('formatted_address', ''),
+                    # Use editorial_summary.overview for actual description, fallback to formatted_address
+                    description=place.get('editorial_summary', {}).get('overview', '') or place.get('formatted_address', ''),
                     address=place.get('address', ''),
                     latitude=place.get('latitude'),
                     longitude=place.get('longitude'),
@@ -135,7 +136,8 @@ class DataCollectionService:
                 attraction = Attraction(
                     # Basic information
                     location=place['name'],
-                    description=place.get('formatted_address', ''),
+                    # Use editorial_summary.overview for actual description, fallback to formatted_address
+                    description=place.get('editorial_summary', {}).get('overview', '') or place.get('formatted_address', ''),
                     address=place.get('address', ''),
                     latitude=place.get('latitude'),
                     longitude=place.get('longitude'),
@@ -364,13 +366,22 @@ class DataCollectionService:
     async def search_attractions(self, db: AsyncSession, query: str) -> List[Attraction]:
         """Search attractions in the database by location or description"""
 
-        embs = await get_similar(query, db, max_results = 30, threshold = .6)
-        attractions = {}
-        for emb in embs:
-            if emb.attraction_id not in attractions:
-                attractions[emb.attraction_id] = emb.attraction
+        embs = await get_similar(query, db, max_results = 30, threshold = .55)
         
-        return [attractions[id].__json__() for id in attractions]
+        # Get unique attraction IDs from embedding results
+        attraction_ids = list(set(emb.attraction_id for emb in embs if emb.attraction_id))
+        
+        if not attraction_ids:
+            return []
+        
+        # Explicitly fetch attractions by ID to avoid lazy loading issues
+        from sqlalchemy import select
+        result = await db.execute(
+            select(Attraction).where(Attraction.id.in_(attraction_ids))
+        )
+        attractions = result.scalars().all()
+        
+        return [attraction.__json__() for attraction in attractions]
     
 
     
