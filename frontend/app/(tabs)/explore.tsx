@@ -125,57 +125,123 @@ export default function DiscoverScreen() {
     return media;
   };
 
+  // Helper to format price level as dollar signs
+  const formatPriceLevel = (level: number | null | undefined): string => {
+    if (level == null || level < 0 || level > 4) return "";
+    return "$".repeat(level + 1);
+  };
+
+  // Helper to format business status
+  const formatBusinessStatus = (status: string | null | undefined): { text: string; color: string } | null => {
+    if (!status) return null;
+    switch (status) {
+      case "OPERATIONAL": return { text: "Open", color: "#4ade80" };
+      case "CLOSED_TEMPORARILY": return { text: "Temporarily Closed", color: "#fbbf24" };
+      case "CLOSED_PERMANENTLY": return { text: "Permanently Closed", color: "#f87171" };
+      default: return null;
+    }
+  };
+
+  // Helper to format type labels (convert snake_case to Title Case)
+  const formatTypeLabel = (type: string): string => {
+    return type
+      .split("_")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   const renderCard = (attraction: any, i: number) => {
     const media = buildMedia(attraction);
     const reviews = Array.isArray(attraction.reviews) ? attraction.reviews : [];
     const opening_hours = attraction.opening_hours;
     const address = attraction.formatted_address || attraction.address || attraction.vicinity || "";
+    const types = Array.isArray(attraction.types) ? attraction.types : (Array.isArray(attraction.tags) ? attraction.tags : []);
+    const description = attraction.description || "";
+    const primaryType = attraction.primary_type || (types.length > 0 ? types[0] : null);
+    const priceLevel = formatPriceLevel(attraction.price_level);
+    const businessStatus = formatBusinessStatus(attraction.business_status);
+
     return (
       <View key={i} style={styles.card}>
         {/* Media carousel */}
         {media.length > 0 && (
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={{ marginBottom: 12 }}
-          snapToInterval={SCREEN_W * 0.9} // width of each card
-          decelerationRate="fast"
-          contentContainerStyle={{
-            paddingLeft: 0, // ensures first image starts at left edge
-            paddingRight: SCREEN_W * 0.05, // small peek for last item
-          }}
-        >
-          {media.map((m, idx) => (
-            <View
-              key={idx}
-              style={{
-                width: SCREEN_W * 0.9, // slightly narrower than full screen
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 8, // spacing between media
-              }}
-            >
-              <AutoSizedImage uri={m.url} maxWidth={SCREEN_W * 0.9} />
-              {m.type === "video" && (
-                <View style={styles.playOverlay}>
-                  <Ionicons name="play" size={40} color="#fff" />
-                </View>
-              )}
-            </View>
-          ))}
-        </ScrollView>
-      )}
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 12 }}
+            snapToInterval={SCREEN_W * 0.9} // width of each card
+            decelerationRate="fast"
+            contentContainerStyle={{
+              paddingLeft: 0, // ensures first image starts at left edge
+              paddingRight: SCREEN_W * 0.05, // small peek for last item
+            }}
+          >
+            {media.map((m, idx) => (
+              <View
+                key={idx}
+                style={{
+                  width: SCREEN_W * 0.9, // slightly narrower than full screen
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 8, // spacing between media
+                }}
+              >
+                <AutoSizedImage uri={m.url} maxWidth={SCREEN_W * 0.9} />
+                {m.type === "video" && (
+                  <View style={styles.playOverlay}>
+                    <Ionicons name="play" size={40} color="#fff" />
+                  </View>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        )}
 
+        {/* Primary Type Badge + Business Status */}
+        <View style={styles.badgeRow}>
+          {primaryType && (
+            <View style={styles.primaryTypeBadge}>
+              <Text style={styles.primaryTypeBadgeText}>{formatTypeLabel(primaryType)}</Text>
+            </View>
+          )}
+          {businessStatus && (
+            <View style={[styles.statusBadge, { backgroundColor: businessStatus.color + "20" }]}>
+              <View style={[styles.statusDot, { backgroundColor: businessStatus.color }]} />
+              <Text style={[styles.statusText, { color: businessStatus.color }]}>{businessStatus.text}</Text>
+            </View>
+          )}
+          {priceLevel && (
+            <Text style={styles.priceLevel}>{priceLevel}</Text>
+          )}
+        </View>
 
         {/* Title + address + rating */}
         <Text style={styles.title}>{attraction.location || attraction.description}</Text>
         {address ? <Text style={styles.address}>{address}</Text> : null}
+
+        {/* Description */}
+        {description && description !== address && (
+          <Text style={styles.descriptionText} numberOfLines={3}>{description}</Text>
+        )}
+
+        {/* Rating */}
         {typeof attraction.rating === "number" && (
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={16} color="#ffd86b" />
             <Text style={styles.ratingText}>{attraction.rating}</Text>
             {typeof attraction.user_ratings_total === "number" && <Text style={styles.ratingCount}>({attraction.user_ratings_total})</Text>}
+          </View>
+        )}
+
+        {/* Tags/Types */}
+        {types.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {types.slice(0, 5).map((type: string, idx: number) => (
+              <View key={idx} style={styles.tagChip}>
+                <Text style={styles.tagText}>{formatTypeLabel(type)}</Text>
+              </View>
+            ))}
           </View>
         )}
 
@@ -271,12 +337,30 @@ const styles = StyleSheet.create({
 
   card: { marginBottom: 24, backgroundColor: "#0f2416", borderRadius: 12, padding: 16 },
 
+  // Badge row for primary type, status, and price
+  badgeRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginBottom: 8, gap: 8 },
+  primaryTypeBadge: { backgroundColor: "#3a7d3a", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16 },
+  primaryTypeBadgeText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16 },
+  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
+  statusText: { fontSize: 12, fontWeight: "600" },
+  priceLevel: { color: "#4ade80", fontSize: 14, fontWeight: "700" },
+
   title: { fontSize: 20, fontWeight: "700", color: "#fff", marginBottom: 4 },
   address: { color: "#9fb99a", marginBottom: 6 },
 
-  ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  // Description
+  descriptionText: { color: "#c4d4c0", fontSize: 14, lineHeight: 20, marginBottom: 10 },
+
+  // Rating
+  ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   ratingText: { color: "#fff", fontWeight: "700", marginLeft: 4 },
   ratingCount: { color: "#9fb99a", marginLeft: 4 },
+
+  // Tags
+  tagsContainer: { flexDirection: "row", flexWrap: "wrap", marginBottom: 12, gap: 6 },
+  tagChip: { backgroundColor: "#1a3d2a", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, borderWidth: 1, borderColor: "#2d5a3d" },
+  tagText: { color: "#9fb99a", fontSize: 12 },
 
   linksRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 12 },
   linkBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: "#224d22", marginRight: 8, marginTop: 6 },
