@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   TextInput,
@@ -13,7 +13,10 @@ import {
   Alert,
   Dimensions,
   ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
 } from "react-native";
+import Markdown from "react-native-markdown-display";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 
@@ -56,6 +59,13 @@ export default function DiscoverScreen() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Chat state
+  const [chatVisible, setChatVisible] = useState(false);
+  const [chatQuery, setChatQuery] = useState("");
+  const [chatMessages, setChatMessages] = useState<Array<{ role: string, content: string }>>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     fetchAllAttractions();
@@ -112,6 +122,102 @@ export default function DiscoverScreen() {
       const text = a.website || a.formatted_address || a.location || JSON.stringify(a).slice(0, 300);
       await Share.share({ message: text });
     } catch { Alert.alert("Share failed"); }
+  };
+
+  // Markdown styles for chat
+  const markdownStyles = useMemo(() => ({
+    body: { color: "#fff", fontSize: 14, lineHeight: 20 },
+    heading1: { color: "#4ade80", fontSize: 18, fontWeight: "bold" as const, marginTop: 8, marginBottom: 4 },
+    heading2: { color: "#4ade80", fontSize: 16, fontWeight: "bold" as const, marginTop: 8, marginBottom: 4 },
+    heading3: { color: "#86efac", fontSize: 14, fontWeight: "bold" as const, marginTop: 6, marginBottom: 2 },
+    strong: { color: "#fff", fontWeight: "bold" as const },
+    em: { color: "#9fb99a", fontStyle: "italic" as const },
+    bullet_list: { marginLeft: 8 },
+    ordered_list: { marginLeft: 8 },
+    list_item: { marginBottom: 4 },
+    paragraph: { marginBottom: 8 },
+    link: { color: "#60a5fa" },
+  }), []);
+
+  // Chat functions with optimized updates
+  const sendChatMessage = async () => {
+    if (!chatQuery.trim() || chatLoading) return;
+
+    const userMessage = chatQuery.trim();
+    setChatQuery("");
+    setChatMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setChatLoading(true);
+
+    // Add placeholder for assistant response
+    setChatMessages(prev => [...prev, { role: "assistant", content: "" }]);
+
+    try {
+      const response = await fetch(`${BACK_URL}/chat?query=${encodeURIComponent(userMessage)}`);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error("No response body");
+
+      let assistantContent = "";
+      let lastUpdate = 0;
+      const UPDATE_INTERVAL = 100; // Only update UI every 100ms
+
+      const updateMessage = (content: string, force = false) => {
+        const now = Date.now();
+        if (force || now - lastUpdate > UPDATE_INTERVAL) {
+          lastUpdate = now;
+          setChatMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1] = { role: "assistant", content };
+            return newMessages;
+          });
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === "status") {
+                assistantContent = data.message + "\n";
+                updateMessage(assistantContent, true);
+              } else if (data.type === "token") {
+                assistantContent += data.content;
+                updateMessage(assistantContent);
+              } else if (data.type === "error") {
+                assistantContent = `**Error:** ${data.message}`;
+                updateMessage(assistantContent, true);
+              } else if (data.type === "complete") {
+                updateMessage(assistantContent, true);
+              }
+            } catch (e) {
+              // Skip malformed JSON
+            }
+          }
+        }
+      }
+
+      // Final update and scroll
+      updateMessage(assistantContent, true);
+      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+
+    } catch (err: any) {
+      setChatMessages(prev => {
+        const newMessages = [...prev];
+        newMessages[newMessages.length - 1] = { role: "assistant", content: `**Error:** ${err.message}` };
+        return newMessages;
+      });
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   const buildMedia = (a: any) => {
@@ -299,33 +405,125 @@ export default function DiscoverScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
-      {/* Search */}
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Search..."
-          placeholderTextColor="#9fb99a"
-          onChangeText={setQuery}
-          value={query}
-          returnKeyType="search"
-          onSubmitEditing={doSearch}
-        />
-        <TouchableOpacity onPress={doSearch} style={styles.searchBtn}>
-          <Ionicons name="send" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
+    <>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+        {/* Search */}
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Search..."
+            placeholderTextColor="#9fb99a"
+            onChangeText={setQuery}
+            value={query}
+            returnKeyType="search"
+            onSubmitEditing={doSearch}
+          />
+          <TouchableOpacity onPress={doSearch} style={styles.searchBtn}>
+            <Ionicons name="send" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#3a7d3a" />
-      ) : error ? (
-        <Text style={{ color: "#fff", padding: 16 }}>{error}</Text>
-      ) : results.length === 0 ? (
-        <Text style={{ color: "#fff", padding: 16 }}>No attractions found</Text>
-      ) : (
-        results.map(renderCard)
-      )}
-    </ScrollView>
+        {loading ? (
+          <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#3a7d3a" />
+        ) : error ? (
+          <Text style={{ color: "#fff", padding: 16 }}>{error}</Text>
+        ) : results.length === 0 ? (
+          <Text style={{ color: "#fff", padding: 16 }}>No attractions found</Text>
+        ) : (
+          results.map(renderCard)
+        )}
+      </ScrollView>
+
+      {/* Chat Floating Button */}
+      <TouchableOpacity
+        style={styles.chatFab}
+        onPress={() => setChatVisible(true)}
+      >
+        <Ionicons name="chatbubbles" size={28} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Chat Modal */}
+      <Modal
+        visible={chatVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setChatVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.chatModalContainer}
+        >
+          <View style={styles.chatModal}>
+            {/* Header */}
+            <View style={styles.chatHeader}>
+              <Text style={styles.chatTitle}>🗽 NYC Trip Planner</Text>
+              <TouchableOpacity onPress={() => setChatVisible(false)}>
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Messages */}
+            <ScrollView
+              ref={chatScrollRef}
+              style={styles.chatMessages}
+              contentContainerStyle={{ paddingBottom: 16 }}
+            >
+              {chatMessages.length === 0 && (
+                <View style={styles.chatWelcome}>
+                  <Text style={styles.chatWelcomeText}>
+                    👋 Hi! I'm your NYC trip planning assistant.
+                  </Text>
+                  <Text style={styles.chatWelcomeSubtext}>
+                    Ask me things like:
+                  </Text>
+                  <Text style={styles.chatExample}>"I want to visit museums and parks, I have 3 hours"</Text>
+                  <Text style={styles.chatExample}>"Family-friendly activities for kids"</Text>
+                  <Text style={styles.chatExample}>"Best places for photography in Manhattan"</Text>
+                </View>
+              )}
+              {chatMessages.map((msg, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.chatBubble,
+                    msg.role === "user" ? styles.chatBubbleUser : styles.chatBubbleAssistant
+                  ]}
+                >
+                  {msg.role === "user" ? (
+                    <Text style={styles.chatBubbleText}>{msg.content}</Text>
+                  ) : (
+                    <Markdown style={markdownStyles}>{msg.content}</Markdown>
+                  )}
+                </View>
+              ))}
+              {chatLoading && (
+                <ActivityIndicator style={{ marginTop: 12 }} color="#3a7d3a" />
+              )}
+            </ScrollView>
+
+            {/* Input */}
+            <View style={styles.chatInputRow}>
+              <TextInput
+                style={styles.chatInput}
+                placeholder="Ask about NYC attractions..."
+                placeholderTextColor="#6b8a6b"
+                value={chatQuery}
+                onChangeText={setChatQuery}
+                onSubmitEditing={sendChatMessage}
+                editable={!chatLoading}
+              />
+              <TouchableOpacity
+                style={[styles.chatSendBtn, chatLoading && { opacity: 0.5 }]}
+                onPress={sendChatMessage}
+                disabled={chatLoading}
+              >
+                <Ionicons name="send" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </>
   );
 }
 
@@ -375,4 +573,114 @@ const styles = StyleSheet.create({
   reviewText: { color: "#9fb99a", fontSize: 13 },
 
   playOverlay: { position: "absolute", alignSelf: "center", top: "40%", backgroundColor: "rgba(0,0,0,0.35)", borderRadius: 40, padding: 12 },
+
+  // Chat styles
+  chatFab: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#3a7d3a",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  chatModalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  chatModal: {
+    height: "80%",
+    backgroundColor: "#0f1a10",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 16,
+  },
+  chatHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1a3d2a",
+  },
+  chatTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  chatMessages: {
+    flex: 1,
+    marginTop: 12,
+  },
+  chatWelcome: {
+    padding: 16,
+    backgroundColor: "#1a3d2a",
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  chatWelcomeText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  chatWelcomeSubtext: {
+    color: "#9fb99a",
+    marginBottom: 8,
+  },
+  chatExample: {
+    color: "#4ade80",
+    fontSize: 13,
+    marginBottom: 4,
+    fontStyle: "italic",
+  },
+  chatBubble: {
+    maxWidth: "85%",
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  chatBubbleUser: {
+    alignSelf: "flex-end",
+    backgroundColor: "#3a7d3a",
+  },
+  chatBubbleAssistant: {
+    alignSelf: "flex-start",
+    backgroundColor: "#1a3d2a",
+  },
+  chatBubbleText: {
+    color: "#fff",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  chatInputRow: {
+    flexDirection: "row",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#1a3d2a",
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: "#122012",
+    padding: 12,
+    borderRadius: 20,
+    color: "#fff",
+    marginRight: 8,
+  },
+  chatSendBtn: {
+    backgroundColor: "#3a7d3a",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

@@ -1,10 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
+from sse_starlette.sse import EventSourceResponse
 from .db import get_db, create_all_tables, create_extensions
 from .services import DataCollectionService
+from .services.agent_flow import run_trip_planner
 from .models.atractions import Attraction
 import psycopg  
+import json
 from .routes.auth import endpoints
 from .routes.auth.auth_middleware import TokenRefreshMiddleware
 from .__init__ import logger
@@ -87,3 +90,30 @@ async def near_by(location: str, distance: int, db: AsyncSession = Depends(get_d
     logger.debug("/near_by called")
     attractions = await data_service.search_attractions(db, location)
     return [attraction.__json__() for attraction in attractions]
+
+
+@app.get("/chat")
+async def chat(query: str):
+    """
+    Multi-agent trip planner chat endpoint with SSE streaming.
+    
+    Uses two agents working together:
+    1. Search Agent - Finds relevant attractions via semantic search
+    2. Planner Agent - Creates personalized itineraries using Gemini
+    """
+    logger.info(f"/chat called with query: {query}")
+    
+    if not query or not query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    
+    async def event_generator():
+        try:
+            async for event in run_trip_planner(query.strip()):
+                if isinstance(event, dict):
+                    yield {"data": json.dumps(event)}
+        except Exception as e:
+            logger.error(f"Error in chat endpoint: {e}")
+            yield {"data": json.dumps({"type": "error", "message": str(e), "done": True})}
+    
+    return EventSourceResponse(event_generator())
+
